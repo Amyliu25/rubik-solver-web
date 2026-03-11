@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>魔方求解器</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    color: #e0e0e0;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  h1 {
+    text-align: center;
+    font-size: 28px;
+    margin-bottom: 20px;
+    background: linear-gradient(90deg, #ff6fd8, #3813c2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .container { max-width: 1200px; margin: 0 auto; }
+
+  /* Input area */
+  .input-section {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .input-section label { font-size: 16px; font-weight: 600; display: block; margin-bottom: 10px; }
+  .input-section textarea {
+    width: 100%;
+    height: 180px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+    color: #e0e0e0;
+    padding: 14px;
+    font-size: 14px;
+    line-height: 1.7;
+    resize: vertical;
+  }
+  .input-section textarea:focus { outline: none; border-color: #7c5cfc; }
+  .btn-row { margin-top: 14px; display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn {
+    padding: 10px 28px;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-primary { background: linear-gradient(135deg, #7c5cfc, #c165dd); color: #fff; }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(124,92,252,0.4); }
+  .btn-secondary { background: rgba(255,255,255,0.1); color: #ccc; border: 1px solid rgba(255,255,255,0.15); }
+  .btn-secondary:hover { background: rgba(255,255,255,0.18); }
+
+  /* Output panels */
+  .output-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+  @media (max-width: 800px) { .output-grid { grid-template-columns: 1fr; } }
+  .panel {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    padding: 20px;
+  }
+  .panel h2 { font-size: 17px; margin-bottom: 14px; color: #c9b8ff; }
+  #answer-box {
+    background: rgba(0,0,0,0.25);
+    border-radius: 10px;
+    padding: 16px;
+    font-size: 18px;
+    line-height: 1.8;
+    min-height: 80px;
+    white-space: pre-wrap;
+  }
+  #steps-box {
+    background: rgba(0,0,0,0.25);
+    border-radius: 10px;
+    padding: 16px;
+    font-size: 14px;
+    line-height: 1.9;
+    max-height: 400px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+  }
+  #steps-box .step-item { padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  #steps-box .step-item:last-child { border-bottom: none; }
+  #steps-box .step-highlight { color: #ffd740; font-weight: 600; }
+
+  /* Animation section */
+  .anim-section {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+  .anim-section h2 { font-size: 17px; margin-bottom: 14px; color: #c9b8ff; }
+  .anim-controls { display: flex; gap: 10px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
+  .anim-controls .btn { padding: 8px 20px; font-size: 14px; }
+  .step-indicator {
+    font-size: 14px;
+    color: #aaa;
+    margin-left: 8px;
+  }
+
+  /* Cube visualization - 2D unfolded */
+  .cube-display { display: flex; justify-content: center; }
+  .cube-net {
+    display: grid;
+    grid-template-columns: repeat(4, auto);
+    grid-template-rows: repeat(3, auto);
+    gap: 4px;
+    justify-items: center;
+    align-items: center;
+  }
+  .face-block { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; }
+  .face-wrapper { text-align: center; }
+  .face-wrapper .face-label {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #aaa;
+  }
+  .cell {
+    width: 38px;
+    height: 38px;
+    border-radius: 4px;
+    border: 1px solid rgba(0,0,0,0.5);
+    transition: background 0.3s;
+    position: relative;
+  }
+  .cell.highlight {
+    box-shadow: 0 0 0 2px #ffd740, 0 0 12px rgba(255,215,64,0.5);
+  }
+  .empty-cell { width: 122px; height: 122px; }
+
+  /* Colors */
+  .c-blue    { background: #0051ba; }
+  .c-yellow  { background: #ffd500; }
+  .c-red     { background: #c41e3a; }
+  .c-green   { background: #009e60; }
+  .c-orange  { background: #ff5800; }
+  .c-white   { background: #ffffff; }
+
+  /* 3D Cube */
+  .cube3d-container {
+    perspective: 600px;
+    width: 180px;
+    height: 180px;
+    margin: 20px auto;
+  }
+  .cube3d {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transform: rotateX(-25deg) rotateY(35deg);
+    transition: transform 0.6s ease;
+  }
+  .cube3d .face3d {
+    position: absolute;
+    width: 180px;
+    height: 180px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    padding: 2px;
+    backface-visibility: visible;
+  }
+  .cube3d .face3d .cell3d {
+    border-radius: 3px;
+    border: 1px solid rgba(0,0,0,0.4);
+  }
+  .face3d-F { transform: translateZ(90px); }
+  .face3d-B { transform: rotateY(180deg) translateZ(90px); }
+  .face3d-U { transform: rotateX(90deg) translateZ(90px); }
+  .face3d-D { transform: rotateX(-90deg) translateZ(90px); }
+  .face3d-R { transform: rotateY(90deg) translateZ(90px); }
+  .face3d-L { transform: rotateY(-90deg) translateZ(90px); }
+
+  /* Helper text */
+  .hint { color: #888; font-size: 13px; margin-top: 8px; }
+
+  /* Progress bar */
+  .progress-bar {
+    width: 100%;
+    height: 4px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+  .progress-bar .fill {
+    height: 100%;
+    background: linear-gradient(90deg, #7c5cfc, #c165dd);
+    border-radius: 2px;
+    transition: width 0.3s;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🧩 三阶魔方求解器</h1>
+
+  <div class="input-section">
+    <label>📝 输入魔方题目描述</label>
+    <textarea id="queryInput" placeholder="示例：现在你手上有一个三阶魔方，正面F是蓝，左面L是黄，右面R是红，背面B是绿，顶面U是橙，底面D是白。
+现在按以下步骤操作魔方：U，D2，U，L2，B。
+现在魔方F面9个方块的颜色分别是什么？">现在你手上有一个三阶魔方，正面F是蓝，左面L是黄，右面R是红，背面B是绿，顶面U是橙，底面D是白。
+现在按以下步骤操作魔方：U，D2，U，L2，B。
+现在魔方F面9个方块的颜色分别是什么，按从左到右，从上到下顺序列出来。</textarea>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="solve()">🚀 求解</button>
+      <button class="btn btn-secondary" onclick="clearAll()">清空</button>
+    </div>
+  </div>
+
+  <div class="output-grid">
+    <div class="panel">
+      <h2>🎯 答案</h2>
+      <div id="answer-box">等待输入...</div>
+    </div>
+    <div class="panel">
+      <h2>📖 每步旋转详解</h2>
+      <div id="steps-box">等待输入...</div>
+    </div>
+  </div>
+
+  <div class="anim-section" id="anim-section" style="display:none;">
+    <h2>🎬 逐步动画演示</h2>
+    <div class="progress-bar"><div class="fill" id="progress-fill"></div></div>
+    <div class="anim-controls">
+      <button class="btn btn-secondary" onclick="animFirst()">⏮ 初始</button>
+      <button class="btn btn-secondary" onclick="animPrev()">◀ 上一步</button>
+      <button class="btn btn-primary" onclick="animNext()">下一步 ▶</button>
+      <button class="btn btn-secondary" onclick="animLast()">末尾 ⏭</button>
+      <button class="btn btn-secondary" onclick="animAutoPlay()">▶ 自动播放</button>
+      <span class="step-indicator" id="step-indicator">第 0 步 / 共 0 步</span>
+    </div>
+    <div id="anim-move-desc" style="font-size:15px; margin-bottom:16px; color:#ffd740; min-height:24px;"></div>
+
+    <!-- 3D Cube -->
+    <div class="cube3d-container">
+      <div class="cube3d" id="cube3d"></div>
+    </div>
+
+    <!-- 2D Net -->
+    <div class="cube-display">
+      <div class="cube-net" id="cube-net"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== Cube Simulator ====================
+
+const FACE_NAMES = ['U', 'D', 'F', 'B', 'L', 'R'];
+
+function createCube(colors) {
+  // colors: { U: color, D: color, F: color, B: color, L: color, R: color }
+  const cube = {};
+  for (const f of FACE_NAMES) {
+    cube[f] = Array(9).fill(colors[f]);
+  }
+  return cube;
+}
+
+function cloneCube(cube) {
+  const c = {};
+  for (const f of FACE_NAMES) c[f] = [...cube[f]];
+  return c;
+}
+
+function rotateFaceCW(face) {
+  return [face[6], face[3], face[0], face[7], face[4], face[1], face[8], face[5], face[2]];
+}
+
+function rotateFaceCCW(face) {
+  return [face[2], face[5], face[8], face[1], face[4], face[7], face[0], face[3], face[6]];
+}
+
+function rotateFace180(face) {
+  return [face[8], face[7], face[6], face[5], face[4], face[3], face[2], face[1], face[0]];
+}
+
+function applyMove(cube, move) {
+  let c = cloneCube(cube);
+
+  switch (move) {
+    case 'U':
+      c.U = rotateFaceCW(c.U);
+      {
+        // U CW: pieces move F→R→B→L→F, so F←L, R←F, B←R, L←B
+        const t = [c.F[0], c.F[1], c.F[2]];
+        [c.F[0], c.F[1], c.F[2]] = [c.L[0], c.L[1], c.L[2]];
+        [c.L[0], c.L[1], c.L[2]] = [c.B[0], c.B[1], c.B[2]];
+        [c.B[0], c.B[1], c.B[2]] = [c.R[0], c.R[1], c.R[2]];
+        [c.R[0], c.R[1], c.R[2]] = t;
+      }
+      break;
+    case "U'":
+      c.U = rotateFaceCCW(c.U);
+      {
+        const t = [c.F[0], c.F[1], c.F[2]];
+        [c.F[0], c.F[1], c.F[2]] = [c.R[0], c.R[1], c.R[2]];
+        [c.R[0], c.R[1], c.R[2]] = [c.B[0], c.B[1], c.B[2]];
+        [c.B[0], c.B[1], c.B[2]] = [c.L[0], c.L[1], c.L[2]];
+        [c.L[0], c.L[1], c.L[2]] = t;
+      }
+      break;
+    case 'U2':
+      c = applyMove(c, 'U');
+      c = applyMove(c, 'U');
+      return c;
+
+    case 'D':
+      c.D = rotateFaceCW(c.D);
+      {
+        // D CW: pieces move F→L→B→R→F, so F←R, R←B, B←L, L←F
+        const t = [c.F[6], c.F[7], c.F[8]];
+        [c.F[6], c.F[7], c.F[8]] = [c.R[6], c.R[7], c.R[8]];
+        [c.R[6], c.R[7], c.R[8]] = [c.B[6], c.B[7], c.B[8]];
+        [c.B[6], c.B[7], c.B[8]] = [c.L[6], c.L[7], c.L[8]];
+        [c.L[6], c.L[7], c.L[8]] = t;
+      }
+      break;
+    case "D'":
+      c.D = rotateFaceCCW(c.D);
+      {
+        const t = [c.F[6], c.F[7], c.F[8]];
+        [c.F[6], c.F[7], c.F[8]] = [c.L[6], c.L[7], c.L[8]];
+        [c.L[6], c.L[7], c.L[8]] = [c.B[6], c.B[7], c.B[8]];
+        [c.B[6], c.B[7], c.B[8]] = [c.R[6], c.R[7], c.R[8]];
+        [c.R[6], c.R[7], c.R[8]] = t;
+      }
+      break;
+    case 'D2':
+      c = applyMove(c, 'D');
+      c = applyMove(c, 'D');
+      return c;
+
+    case 'F':
+      c.F = rotateFaceCW(c.F);
+      {
+        const saved = [c.U[6], c.U[7], c.U[8]];
+        [c.U[6], c.U[7], c.U[8]] = [c.L[8], c.L[5], c.L[2]];
+        [c.L[2], c.L[5], c.L[8]] = [c.D[0], c.D[1], c.D[2]];
+        [c.D[0], c.D[1], c.D[2]] = [c.R[6], c.R[3], c.R[0]];
+        [c.R[0], c.R[3], c.R[6]] = saved;
+      }
+      break;
+    case "F'":
+      c.F = rotateFaceCCW(c.F);
+      {
+        const saved = [c.U[6], c.U[7], c.U[8]];
+        [c.U[6], c.U[7], c.U[8]] = [c.R[0], c.R[3], c.R[6]];
+        [c.R[0], c.R[3], c.R[6]] = [c.D[2], c.D[1], c.D[0]];
+        [c.D[0], c.D[1], c.D[2]] = [c.L[2], c.L[5], c.L[8]];
+        [c.L[2], c.L[5], c.L[8]] = [saved[2], saved[1], saved[0]];
+      }
+      break;
+    case 'F2':
+      c = applyMove(c, 'F');
+      c = applyMove(c, 'F');
+      return c;
+
+    case 'B':
+      c.B = rotateFaceCW(c.B);
+      {
+        const saved = [c.U[0], c.U[1], c.U[2]];
+        [c.U[0], c.U[1], c.U[2]] = [c.R[2], c.R[5], c.R[8]];
+        [c.R[2], c.R[5], c.R[8]] = [c.D[8], c.D[7], c.D[6]];
+        [c.D[6], c.D[7], c.D[8]] = [c.L[0], c.L[3], c.L[6]];
+        [c.L[0], c.L[3], c.L[6]] = [saved[2], saved[1], saved[0]];
+      }
+      break;
+    case "B'":
+      c.B = rotateFaceCCW(c.B);
+      {
+        const saved = [c.U[0], c.U[1], c.U[2]];
+        [c.U[0], c.U[1], c.U[2]] = [c.L[6], c.L[3], c.L[0]];
+        [c.L[0], c.L[3], c.L[6]] = [c.D[6], c.D[7], c.D[8]];
+        [c.D[6], c.D[7], c.D[8]] = [c.R[8], c.R[5], c.R[2]];
+        [c.R[2], c.R[5], c.R[8]] = saved;
+      }
+      break;
+    case 'B2':
+      c = applyMove(c, 'B');
+      c = applyMove(c, 'B');
+      return c;
+
+    case 'R':
+      c.R = rotateFaceCW(c.R);
+      {
+        const saved = [c.U[2], c.U[5], c.U[8]];
+        [c.U[2], c.U[5], c.U[8]] = [c.F[2], c.F[5], c.F[8]];
+        [c.F[2], c.F[5], c.F[8]] = [c.D[2], c.D[5], c.D[8]];
+        [c.D[2], c.D[5], c.D[8]] = [c.B[6], c.B[3], c.B[0]];
+        [c.B[0], c.B[3], c.B[6]] = [saved[2], saved[1], saved[0]];
+      }
+      break;
+    case "R'":
+      c.R = rotateFaceCCW(c.R);
+      {
+        const saved = [c.U[2], c.U[5], c.U[8]];
+        [c.U[2], c.U[5], c.U[8]] = [c.B[6], c.B[3], c.B[0]];
+        [c.B[0], c.B[3], c.B[6]] = [c.D[8], c.D[5], c.D[2]];
+        [c.D[2], c.D[5], c.D[8]] = [c.F[2], c.F[5], c.F[8]];
+        [c.F[2], c.F[5], c.F[8]] = saved;
+      }
+      break;
+    case 'R2':
+      c = applyMove(c, 'R');
+      c = applyMove(c, 'R');
+      return c;
+
+    case 'L':
+      c.L = rotateFaceCW(c.L);
+      {
+        const saved = [c.U[0], c.U[3], c.U[6]];
+        [c.U[0], c.U[3], c.U[6]] = [c.B[8], c.B[5], c.B[2]];
+        [c.B[2], c.B[5], c.B[8]] = [c.D[6], c.D[3], c.D[0]];
+        [c.D[0], c.D[3], c.D[6]] = [c.F[0], c.F[3], c.F[6]];
+        [c.F[0], c.F[3], c.F[6]] = saved;
+      }
+      break;
+    case "L'":
+      c.L = rotateFaceCCW(c.L);
+      {
+        const saved = [c.U[0], c.U[3], c.U[6]];
+        [c.U[0], c.U[3], c.U[6]] = [c.F[0], c.F[3], c.F[6]];
+        [c.F[0], c.F[3], c.F[6]] = [c.D[0], c.D[3], c.D[6]];
+        [c.D[0], c.D[3], c.D[6]] = [c.B[8], c.B[5], c.B[2]];
+        [c.B[2], c.B[5], c.B[8]] = [saved[2], saved[1], saved[0]];
+      }
+      break;
+    case 'L2':
+      c = applyMove(c, 'L');
+      c = applyMove(c, 'L');
+      return c;
+  }
+  return c;
+}
+
+// ==================== Query Parser ====================
+
+const COLOR_MAP_ZH = {
+  '蓝': 'blue', '红': 'red', '黄': 'yellow',
+  '绿': 'green', '橙': 'orange', '白': 'white',
+  '蓝色': 'blue', '红色': 'red', '黄色': 'yellow',
+  '绿色': 'green', '橙色': 'orange', '白色': 'white',
+};
+
+const COLOR_DISPLAY = {
+  blue: '蓝', red: '红', yellow: '黄',
+  green: '绿', orange: '橙', white: '白',
+};
+
+const COLOR_CSS = {
+  blue: 'c-blue', red: 'c-red', yellow: 'c-yellow',
+  green: 'c-green', orange: 'c-orange', white: 'c-white',
+};
+
+const FACE_ZH = {
+  '正面': 'F', '前面': 'F', '前': 'F',
+  '背面': 'B', '后面': 'B', '后': 'B',
+  '左面': 'L', '左': 'L',
+  '右面': 'R', '右': 'R',
+  '顶面': 'U', '上面': 'U', '顶': 'U', '上': 'U',
+  '底面': 'D', '下面': 'D', '底': 'D', '下': 'D',
+};
+
+const MOVE_DESC = {
+  'U':  'U（顶面顺时针90°）',
+  "U'": "U'（顶面逆时针90°）",
+  'U2': 'U2（顶面顺时针180°）',
+  'D':  'D（底面顺时针90°）',
+  "D'": "D'（底面逆时针90°）",
+  'D2': 'D2（底面顺时针180°）',
+  'F':  'F（正面顺时针90°）',
+  "F'": "F'（正面逆时针90°）",
+  'F2': 'F2（正面顺时针180°）',
+  'B':  'B（背面顺时针90°）',
+  "B'": "B'（背面逆时针90°）",
+  'B2': 'B2（背面顺时针180°）',
+  'R':  'R（右面顺时针90°）',
+  "R'": "R'（右面逆时针90°）",
+  'R2': 'R2（右面顺时针180°）',
+  'L':  'L（左面顺时针90°）',
+  "L'": "L'（左面逆时针90°）",
+  'L2': 'L2（左面顺时针180°）',
+};
+
+const FACE_FULL_ZH = { U: '顶面(U)', D: '底面(D)', F: '正面(F)', B: '背面(B)', L: '左面(L)', R: '右面(R)' };
+
+function parseQuery(text) {
+  // Parse face colors
+  const faceColors = {};
+  // Match patterns like "正面F是蓝" or "F面是蓝" or "F是蓝"
+  const colorPatterns = [
+    /(?:正面|前面|前)\s*F?\s*[是为：:]\s*(\S)/g,
+    /(?:背面|后面|后)\s*B?\s*[是为：:]\s*(\S)/g,
+    /(?:左面|左)\s*L?\s*[是为：:]\s*(\S)/g,
+    /(?:右面|右)\s*R?\s*[是为：:]\s*(\S)/g,
+    /(?:顶面|上面|顶|上)\s*U?\s*[是为：:]\s*(\S)/g,
+    /(?:底面|下面|底|下)\s*D?\s*[是为：:]\s*(\S)/g,
+  ];
+  const faceLetter = ['F', 'B', 'L', 'R', 'U', 'D'];
+
+  for (let i = 0; i < colorPatterns.length; i++) {
+    const m = colorPatterns[i].exec(text);
+    if (m) {
+      const colorChar = m[1].replace(/[色，。、,\.]/g, '');
+      if (COLOR_MAP_ZH[colorChar]) {
+        faceColors[faceLetter[i]] = COLOR_MAP_ZH[colorChar];
+      }
+    }
+  }
+
+  // Also try: "F是蓝" pattern directly
+  const directPattern = /([UDLRFB])\s*[面]?\s*[是为：:]\s*([\u4e00-\u9fff]+)/g;
+  let dm;
+  while ((dm = directPattern.exec(text)) !== null) {
+    const c = dm[2].replace(/[色，。、,\.]/g, '');
+    if (COLOR_MAP_ZH[c] && !faceColors[dm[1]]) {
+      faceColors[dm[1]] = COLOR_MAP_ZH[c];
+    }
+  }
+
+  // Parse moves
+  let moves = [];
+  // Find the moves section - look for patterns with standard notation
+  const moveSection = text.match(/(?:步骤|操作|旋转|公式)[^：:]*[：:]\s*([^\n。]+)/);
+  if (moveSection) {
+    const moveStr = moveSection[1];
+    const moveTokens = moveStr.match(/[UDLRFB][2']?/g);
+    if (moveTokens) moves = moveTokens;
+  }
+  if (moves.length === 0) {
+    // Try to find moves anywhere in text
+    const allMoves = text.match(/[UDLRFB][2'']?/g);
+    if (allMoves && allMoves.length > 0) {
+      // Filter out face definitions (like "F是蓝" where F is followed by 是)
+      moves = allMoves.filter(m => {
+        const idx = text.indexOf(m);
+        const after = text.substring(idx + m.length, idx + m.length + 2);
+        return !/^[是为面]/.test(after);
+      });
+    }
+  }
+  // Normalize prime symbol
+  moves = moves.map(m => m.replace(/'/g, "'"));
+
+  // Parse query face
+  let queryFace = 'F'; // default
+  const queryMatch = text.match(/(?:魔方|现在)\s*([UDLRFB])\s*面/);
+  if (queryMatch) queryFace = queryMatch[1];
+  // Also check Chinese face names in query context
+  const queryMatch2 = text.match(/(?:魔方|现在)\s*(正面|背面|左面|右面|顶面|底面|上面|下面|前面|后面)/);
+  if (queryMatch2) {
+    const fz = FACE_ZH[queryMatch2[1]];
+    if (fz) queryFace = fz;
+  }
+
+  return { faceColors, moves, queryFace };
+}
+
+// ==================== Describe Changes ====================
+
+function describeFaceState(cube, face) {
+  return cube[face].map(c => COLOR_DISPLAY[c] || c).join(' ');
+}
+
+function describeChange(prevCube, newCube, move, stepNum) {
+  const desc = MOVE_DESC[move] || move;
+  let lines = `【第${stepNum}步】${desc}\n`;
+
+  // Show which faces changed
+  for (const f of FACE_NAMES) {
+    const prev = prevCube[f];
+    const curr = newCube[f];
+    const changed = prev.some((v, i) => v !== curr[i]);
+    if (changed) {
+      lines += `  ${FACE_FULL_ZH[f]}：${curr.map(c => COLOR_DISPLAY[c]).join(' ')}\n`;
+    }
+  }
+  return lines;
+}
+
+// ==================== Main Solve ====================
+
+let solveResult = null; // { snapshots, moves, queryFace, faceColors }
+
+function solve() {
+  const text = document.getElementById('queryInput').value.trim();
+  if (!text) return;
+
+  const { faceColors, moves, queryFace } = parseQuery(text);
+
+  // Validate
+  if (Object.keys(faceColors).length < 6) {
+    // Try to fill in defaults
+    const defaults = { U: 'white', D: 'yellow', F: 'green', B: 'blue', L: 'orange', R: 'red' };
+    for (const f of FACE_NAMES) {
+      if (!faceColors[f]) faceColors[f] = defaults[f];
+    }
+  }
+
+  if (moves.length === 0) {
+    document.getElementById('answer-box').textContent = '⚠️ 未能识别出旋转步骤，请检查输入格式。';
+    return;
+  }
+
+  // Initialize cube
+  let cube = createCube(faceColors);
+  const snapshots = [cloneCube(cube)];
+  const stepDescs = [];
+
+  // Apply each move
+  for (let i = 0; i < moves.length; i++) {
+    const prev = cloneCube(cube);
+    cube = applyMove(cube, moves[i]);
+    snapshots.push(cloneCube(cube));
+    stepDescs.push(describeChange(prev, cube, moves[i], i + 1));
+  }
+
+  // Generate answer
+  const finalFace = cube[queryFace];
+  const answerColors = finalFace.map(c => COLOR_DISPLAY[c] || c);
+  let answerText = `${FACE_FULL_ZH[queryFace]} 的 9 个方块颜色（从左到右，从上到下）：\n\n`;
+  answerText += `  ${answerColors[0]}  ${answerColors[1]}  ${answerColors[2]}\n`;
+  answerText += `  ${answerColors[3]}  ${answerColors[4]}  ${answerColors[5]}\n`;
+  answerText += `  ${answerColors[6]}  ${answerColors[7]}  ${answerColors[8]}\n\n`;
+  answerText += `即：${answerColors.join('、')}`;
+
+  document.getElementById('answer-box').textContent = answerText;
+
+  // Generate steps text
+  let stepsHtml = '';
+  for (const desc of stepDescs) {
+    stepsHtml += `<div class="step-item">${desc.replace(/\n/g, '<br>')}</div>`;
+  }
+  document.getElementById('steps-box').innerHTML = stepsHtml;
+
+  // Store for animation
+  solveResult = { snapshots, moves, queryFace, faceColors };
+  currentStep = 0;
+
+  // Show animation section
+  document.getElementById('anim-section').style.display = 'block';
+  updateAnimDisplay();
+}
+
+// ==================== Animation ====================
+
+let currentStep = 0;
+let autoPlayTimer = null;
+
+function updateAnimDisplay() {
+  if (!solveResult) return;
+  const { snapshots, moves, queryFace } = solveResult;
+  const total = moves.length;
+  const cube = snapshots[currentStep];
+
+  // Update step indicator
+  document.getElementById('step-indicator').textContent =
+    currentStep === 0
+      ? `初始状态 / 共 ${total} 步`
+      : `第 ${currentStep} 步 / 共 ${total} 步`;
+
+  // Progress bar
+  document.getElementById('progress-fill').style.width = `${(currentStep / total) * 100}%`;
+
+  // Move description
+  const descEl = document.getElementById('anim-move-desc');
+  if (currentStep === 0) {
+    descEl.textContent = '📌 初始状态 — 魔方已复原';
+  } else {
+    descEl.textContent = `🔄 ${MOVE_DESC[moves[currentStep - 1]] || moves[currentStep - 1]}`;
+  }
+
+  // Render 2D net
+  render2DNet(cube, queryFace);
+  // Render 3D cube
+  render3DCube(cube);
+}
+
+function render2DNet(cube, highlightFace) {
+  const net = document.getElementById('cube-net');
+  net.innerHTML = '';
+
+  // Layout: 4 columns x 3 rows
+  // Row 0: _, U, _, _
+  // Row 1: L, F, R, B
+  // Row 2: _, D, _, _
+  const layout = [
+    [null, 'U', null, null],
+    ['L', 'F', 'R', 'B'],
+    [null, 'D', null, null],
+  ];
+
+  for (let row = 0; row < 3; row++) {
+    for (let col = 0; col < 4; col++) {
+      const face = layout[row][col];
+      if (!face) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-cell';
+        net.appendChild(empty);
+      } else {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'face-wrapper';
+        const label = document.createElement('div');
+        label.className = 'face-label';
+        label.textContent = FACE_FULL_ZH[face];
+        wrapper.appendChild(label);
+
+        const block = document.createElement('div');
+        block.className = 'face-block';
+        for (let i = 0; i < 9; i++) {
+          const cell = document.createElement('div');
+          cell.className = `cell ${COLOR_CSS[cube[face][i]] || ''}`;
+          if (face === highlightFace) cell.classList.add('highlight');
+          block.appendChild(cell);
+        }
+        wrapper.appendChild(block);
+        net.appendChild(wrapper);
+      }
+    }
+  }
+}
+
+function render3DCube(cube) {
+  const container = document.getElementById('cube3d');
+  container.innerHTML = '';
+
+  const faces3d = [
+    { name: 'F', cls: 'face3d-F' },
+    { name: 'B', cls: 'face3d-B' },
+    { name: 'U', cls: 'face3d-U' },
+    { name: 'D', cls: 'face3d-D' },
+    { name: 'R', cls: 'face3d-R' },
+    { name: 'L', cls: 'face3d-L' },
+  ];
+
+  for (const f of faces3d) {
+    const faceEl = document.createElement('div');
+    faceEl.className = `face3d ${f.cls}`;
+    for (let i = 0; i < 9; i++) {
+      const cell = document.createElement('div');
+      cell.className = `cell3d ${COLOR_CSS[cube[f.name][i]] || ''}`;
+      faceEl.appendChild(cell);
+    }
+    container.appendChild(faceEl);
+  }
+}
+
+function animNext() {
+  if (!solveResult) return;
+  if (currentStep < solveResult.moves.length) {
+    currentStep++;
+    updateAnimDisplay();
+  }
+}
+
+function animPrev() {
+  if (!solveResult) return;
+  if (currentStep > 0) {
+    currentStep--;
+    updateAnimDisplay();
+  }
+}
+
+function animFirst() {
+  if (!solveResult) return;
+  currentStep = 0;
+  updateAnimDisplay();
+}
+
+function animLast() {
+  if (!solveResult) return;
+  currentStep = solveResult.moves.length;
+  updateAnimDisplay();
+}
+
+function animAutoPlay() {
+  if (!solveResult) return;
+  if (autoPlayTimer) {
+    clearInterval(autoPlayTimer);
+    autoPlayTimer = null;
+    return;
+  }
+  if (currentStep >= solveResult.moves.length) {
+    currentStep = 0;
+    updateAnimDisplay();
+  }
+  autoPlayTimer = setInterval(() => {
+    if (currentStep >= solveResult.moves.length) {
+      clearInterval(autoPlayTimer);
+      autoPlayTimer = null;
+      return;
+    }
+    currentStep++;
+    updateAnimDisplay();
+  }, 1000);
+}
+
+function clearAll() {
+  document.getElementById('queryInput').value = '';
+  document.getElementById('answer-box').textContent = '等待输入...';
+  document.getElementById('steps-box').textContent = '等待输入...';
+  document.getElementById('anim-section').style.display = 'none';
+  solveResult = null;
+  currentStep = 0;
+  if (autoPlayTimer) { clearInterval(autoPlayTimer); autoPlayTimer = null; }
+}
+</script>
+</body>
+</html>
