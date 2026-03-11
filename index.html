@@ -21,7 +21,7 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }
-  .container { max-width: 1300px; margin: 0 auto; }
+  .container { max-width: 1500px; margin: 0 auto; }
 
   .input-section {
     background: rgba(255,255,255,0.06);
@@ -105,7 +105,7 @@
   /* Horizontal layout for 3D + 2D */
   .anim-display {
     display: flex;
-    gap: 40px;
+    gap: 60px;
     align-items: flex-start;
     justify-content: center;
     flex-wrap: nowrap;
@@ -143,8 +143,8 @@
     font-size: 13px;
   }
   .cell {
-    width: 40px;
-    height: 40px;
+    width: 34px;
+    height: 34px;
     border-radius: 4px;
     border: 1.5px solid rgba(0,0,0,0.5);
     transition: background 0.3s;
@@ -158,7 +158,7 @@
   .cell.highlight {
     box-shadow: 0 0 0 2px #ffd740, 0 0 12px rgba(255,215,64,0.5);
   }
-  .empty-cell { width: 130px; height: 130px; }
+  .empty-cell { width: 110px; height: 110px; }
 
   .c-blue    { background: #0051ba; }
   .c-yellow  { background: #ffd500; }
@@ -172,8 +172,8 @@
   .cube3d-wrapper .face-label { font-size: 14px; font-weight: 600; margin-bottom: 10px; color: #aaa; }
   .cube3d-container {
     perspective: 600px;
-    width: 200px;
-    height: 200px;
+    width: 220px;
+    height: 220px;
     margin: 0 auto;
   }
   .cube3d {
@@ -186,8 +186,8 @@
   }
   .cube3d .face3d {
     position: absolute;
-    width: 200px;
-    height: 200px;
+    width: 220px;
+    height: 220px;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 3px;
@@ -198,12 +198,12 @@
     border-radius: 4px;
     border: 1.5px solid rgba(0,0,0,0.4);
   }
-  .face3d-F { transform: translateZ(100px); }
-  .face3d-B { transform: rotateY(180deg) translateZ(100px); }
-  .face3d-U { transform: rotateX(90deg) translateZ(100px); }
-  .face3d-D { transform: rotateX(-90deg) translateZ(100px); }
-  .face3d-R { transform: rotateY(90deg) translateZ(100px); }
-  .face3d-L { transform: rotateY(-90deg) translateZ(100px); }
+  .face3d-F { transform: translateZ(110px); }
+  .face3d-B { transform: rotateY(180deg) translateZ(110px); }
+  .face3d-U { transform: rotateX(90deg) translateZ(110px); }
+  .face3d-D { transform: rotateX(-90deg) translateZ(110px); }
+  .face3d-R { transform: rotateY(90deg) translateZ(110px); }
+  .face3d-L { transform: rotateY(-90deg) translateZ(110px); }
   /* 3D face labels */
   .face3d-label {
     position: absolute;
