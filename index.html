@@ -199,6 +199,51 @@
     color: #aaa;
     margin-top: 2px;
   }
+
+  /* Active face highlight in 3D */
+  .face3d.face-active {
+    box-shadow: 0 0 30px 10px rgba(255, 215, 64, 0.6), inset 0 0 20px rgba(255, 215, 64, 0.15);
+    z-index: 10;
+  }
+  .face3d.face-active .cell3d {
+    border-color: rgba(255, 215, 64, 0.7) !important;
+  }
+
+  /* Active face highlight in 2D */
+  .face-wrapper.face-2d-active .face-block {
+    box-shadow: 0 0 20px 6px rgba(255, 215, 64, 0.5);
+    border-radius: 6px;
+  }
+  .face-wrapper.face-2d-active .face-label {
+    color: #ffd740 !important;
+    text-shadow: 0 0 10px rgba(255, 215, 64, 0.6);
+  }
+
+  /* Rotation indicator overlay */
+  .rotation-indicator {
+    text-align: center;
+    margin-top: 12px;
+    min-height: 60px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .rotation-indicator .arrow-symbol {
+    font-size: 42px;
+    color: #ffd740;
+    text-shadow: 0 0 12px rgba(255, 215, 64, 0.5);
+    animation: pulse-arrow 1.2s ease-in-out infinite;
+  }
+  .rotation-indicator .arrow-text {
+    font-size: 14px;
+    color: #ccc;
+    margin-top: 4px;
+  }
+  @keyframes pulse-arrow {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.1); }
+  }
   .cube3d .face3d {
     position: absolute;
     width: 220px;
@@ -313,6 +358,7 @@
         <div class="cube3d-container">
           <div class="cube3d" id="cube3d"></div>
         </div>
+        <div class="rotation-indicator" id="rotation-indicator"></div>
       </div>
       <!-- 2D Net on right -->
       <div style="flex-shrink:0;">
@@ -666,17 +712,22 @@ function updateAnimDisplay() {
   document.getElementById('progress-fill').style.width = `${(currentStep / total) * 100}%`;
 
   const descEl = document.getElementById('anim-move-desc');
+  // Determine current move (for highlighting)
+  const currentMove = currentStep > 0 ? moves[currentStep - 1] : null;
+  const activeFace = currentMove ? currentMove[0] : null; // First char = face letter
+
   if (currentStep === 0) {
     descEl.textContent = '📌 初始状态 — 各面颜色均匀';
   } else {
-    descEl.textContent = `🔄 ${MOVE_DESC[moves[currentStep - 1]] || moves[currentStep - 1]}`;
+    descEl.textContent = `🔄 ${MOVE_DESC[currentMove] || currentMove}`;
   }
 
-  render2DNet(cube, queryFace);
-  render3DCube(cube);
+  render2DNet(cube, queryFace, activeFace);
+  render3DCube(cube, activeFace);
+  updateRotationIndicator(currentMove);
 }
 
-function render2DNet(cube, highlightFace) {
+function render2DNet(cube, highlightFace, activeFace) {
   const net = document.getElementById('cube-net');
   net.innerHTML = '';
 
@@ -700,6 +751,9 @@ function render2DNet(cube, highlightFace) {
       } else {
         const wrapper = document.createElement('div');
         wrapper.className = 'face-wrapper';
+        // Highlight the face that just rotated
+        if (face === activeFace) wrapper.classList.add('face-2d-active');
+
         const label = document.createElement('div');
         label.className = 'face-label';
         label.innerHTML = `<span class="face-letter">${face}</span> ${FACE_FULL_ZH[face]}`;
@@ -720,7 +774,7 @@ function render2DNet(cube, highlightFace) {
   }
 }
 
-function render3DCube(cube) {
+function render3DCube(cube, activeFace) {
   const container = document.getElementById('cube3d');
   container.innerHTML = '';
 
@@ -736,6 +790,7 @@ function render3DCube(cube) {
   for (const f of faces3d) {
     const faceEl = document.createElement('div');
     faceEl.className = `face3d ${f.cls}`;
+    if (f.name === activeFace) faceEl.classList.add('face-active');
     for (let i = 0; i < 9; i++) {
       const cell = document.createElement('div');
       cell.className = `cell3d ${COLOR_CSS[cube[f.name][i]] || ''}`;
@@ -748,6 +803,32 @@ function render3DCube(cube) {
     container.appendChild(faceEl);
     container.appendChild(labelEl);
   }
+}
+
+// Rotation direction indicator with arrow
+function updateRotationIndicator(move) {
+  const el = document.getElementById('rotation-indicator');
+  if (!move) {
+    el.innerHTML = '';
+    return;
+  }
+  const face = move[0];
+  const isPrime = move.includes("'");
+  const isDouble = move.includes("2");
+
+  let arrowSymbol, dirText;
+  if (isDouble) {
+    arrowSymbol = '🔄';
+    dirText = `${FACE_FULL_ZH[face]} 旋转180°`;
+  } else if (isPrime) {
+    arrowSymbol = '↺';
+    dirText = `${FACE_FULL_ZH[face]} 逆时针90°`;
+  } else {
+    arrowSymbol = '↻';
+    dirText = `${FACE_FULL_ZH[face]} 顺时针90°`;
+  }
+
+  el.innerHTML = `<div class="arrow-symbol">${arrowSymbol}</div><div class="arrow-text">${dirText}</div>`;
 }
 
 function animNext() {
