@@ -534,12 +534,13 @@ function parseQuery(text) {
   const moveSection = text.match(/(?:步骤|操作|旋转|公式)[^：:]*[：:]\s*([^\n。]+)/);
   if (moveSection) {
     const moveStr = moveSection[1];
-    // Support various prime/apostrophe characters
-    const moveTokens = moveStr.match(/[UDLRFB][2''\u2019*]?/g);
+    // Support various prime/apostrophe/counter-clockwise characters:
+    // ' ' ʼ ′ ` ´ * - (apostrophes, prime, backtick, acute, asterisk, dash)
+    const moveTokens = moveStr.match(/[UDLRFB][2''\u2019\u2032ʼ`´*\-]?/g);
     if (moveTokens) moves = moveTokens;
   }
   if (moves.length === 0) {
-    const allMoves = text.match(/[UDLRFB][2''\u2019*]?/g);
+    const allMoves = text.match(/[UDLRFB][2''\u2019\u2032ʼ`´*\-]?/g);
     if (allMoves && allMoves.length > 0) {
       moves = allMoves.filter(m => {
         const idx = text.indexOf(m);
@@ -548,8 +549,8 @@ function parseQuery(text) {
       });
     }
   }
-  // Normalize all prime variants to standard '
-  moves = moves.map(m => m.replace(/[''ʼ\u2019*]/g, "'"));
+  // Normalize all prime/CCW variants to standard '
+  moves = moves.map(m => m.replace(/[''ʼ\u2019\u2032`´*\-]/g, "'"));
 
   let queryFace = 'F';
   const queryMatch = text.match(/(?:魔方|现在)\s*([UDLRFB])\s*面/);
