@@ -182,7 +182,22 @@
     position: relative;
     transform-style: preserve-3d;
     transform: rotateX(-25deg) rotateY(35deg);
-    transition: transform 0.6s ease;
+    transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  .rotation-arrow {
+    font-size: 48px;
+    line-height: 1;
+    text-align: center;
+    margin-top: 8px;
+    color: #ffd740;
+    transition: opacity 0.3s;
+    min-height: 56px;
+  }
+  .rotation-arrow .arrow-label {
+    font-size: 13px;
+    color: #aaa;
+    margin-top: 2px;
   }
   .cube3d .face3d {
     position: absolute;
@@ -366,8 +381,9 @@ function applyMove(cube, move) {
     case 'U2': return applyMove(applyMove(c, 'U'), 'U');
 
     // D CW (from below): F bot→L bot→B bot→R bot→F bot
+    // D face is indexed from above, so CW from below = CCW in grid coords
     case 'D':
-      c.D = rotateFaceCW(c.D);
+      c.D = rotateFaceCCW(c.D);
       { const t = [c.F[6],c.F[7],c.F[8]];
         [c.F[6],c.F[7],c.F[8]] = [c.R[6],c.R[7],c.R[8]];
         [c.R[6],c.R[7],c.R[8]] = [c.B[6],c.B[7],c.B[8]];
@@ -375,7 +391,7 @@ function applyMove(cube, move) {
         [c.L[6],c.L[7],c.L[8]] = t;
       } break;
     case "D'":
-      c.D = rotateFaceCCW(c.D);
+      c.D = rotateFaceCW(c.D);
       { const t = [c.F[6],c.F[7],c.F[8]];
         [c.F[6],c.F[7],c.F[8]] = [c.L[6],c.L[7],c.L[8]];
         [c.L[6],c.L[7],c.L[8]] = [c.B[6],c.B[7],c.B[8]];
