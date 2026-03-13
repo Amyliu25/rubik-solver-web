@@ -437,42 +437,41 @@ function rotateFaceCCW(face) {
 function applyMove(cube, move) {
   let c = cloneCube(cube);
   switch (move) {
-    // U CW (from above): F top→R top→B top→L top→F top
+    // U CW (from above): F←R, R←B, B←L, L←F
     case 'U':
       c.U = rotateFaceCW(c.U);
-      { const t = [c.F[0],c.F[1],c.F[2]];
-        [c.F[0],c.F[1],c.F[2]] = [c.L[0],c.L[1],c.L[2]];
-        [c.L[0],c.L[1],c.L[2]] = [c.B[0],c.B[1],c.B[2]];
-        [c.B[0],c.B[1],c.B[2]] = [c.R[0],c.R[1],c.R[2]];
-        [c.R[0],c.R[1],c.R[2]] = t;
-      } break;
-    case "U'":
-      c.U = rotateFaceCCW(c.U);
       { const t = [c.F[0],c.F[1],c.F[2]];
         [c.F[0],c.F[1],c.F[2]] = [c.R[0],c.R[1],c.R[2]];
         [c.R[0],c.R[1],c.R[2]] = [c.B[0],c.B[1],c.B[2]];
         [c.B[0],c.B[1],c.B[2]] = [c.L[0],c.L[1],c.L[2]];
         [c.L[0],c.L[1],c.L[2]] = t;
       } break;
+    case "U'":
+      c.U = rotateFaceCCW(c.U);
+      { const t = [c.F[0],c.F[1],c.F[2]];
+        [c.F[0],c.F[1],c.F[2]] = [c.L[0],c.L[1],c.L[2]];
+        [c.L[0],c.L[1],c.L[2]] = [c.B[0],c.B[1],c.B[2]];
+        [c.B[0],c.B[1],c.B[2]] = [c.R[0],c.R[1],c.R[2]];
+        [c.R[0],c.R[1],c.R[2]] = t;
+      } break;
     case 'U2': return applyMove(applyMove(c, 'U'), 'U');
 
-    // D CW (from below): F bot→L bot→B bot→R bot→F bot
-    // D face is indexed from above, so CW from below = CCW in grid coords
+    // D CW (from below): F←L, L←B, B←R, R←F
     case 'D':
-      c.D = rotateFaceCCW(c.D);
-      { const t = [c.F[6],c.F[7],c.F[8]];
-        [c.F[6],c.F[7],c.F[8]] = [c.R[6],c.R[7],c.R[8]];
-        [c.R[6],c.R[7],c.R[8]] = [c.B[6],c.B[7],c.B[8]];
-        [c.B[6],c.B[7],c.B[8]] = [c.L[6],c.L[7],c.L[8]];
-        [c.L[6],c.L[7],c.L[8]] = t;
-      } break;
-    case "D'":
       c.D = rotateFaceCW(c.D);
       { const t = [c.F[6],c.F[7],c.F[8]];
         [c.F[6],c.F[7],c.F[8]] = [c.L[6],c.L[7],c.L[8]];
         [c.L[6],c.L[7],c.L[8]] = [c.B[6],c.B[7],c.B[8]];
         [c.B[6],c.B[7],c.B[8]] = [c.R[6],c.R[7],c.R[8]];
         [c.R[6],c.R[7],c.R[8]] = t;
+      } break;
+    case "D'":
+      c.D = rotateFaceCCW(c.D);
+      { const t = [c.F[6],c.F[7],c.F[8]];
+        [c.F[6],c.F[7],c.F[8]] = [c.R[6],c.R[7],c.R[8]];
+        [c.R[6],c.R[7],c.R[8]] = [c.B[6],c.B[7],c.B[8]];
+        [c.B[6],c.B[7],c.B[8]] = [c.L[6],c.L[7],c.L[8]];
+        [c.L[6],c.L[7],c.L[8]] = t;
       } break;
     case 'D2': return applyMove(applyMove(c, 'D'), 'D');
 
