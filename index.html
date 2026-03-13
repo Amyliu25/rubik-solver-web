@@ -174,7 +174,7 @@
     perspective: 600px;
     width: 220px;
     height: 220px;
-    margin: 0 auto 40px;
+    margin: 0 auto;
   }
   .cube3d {
     width: 100%;
@@ -185,20 +185,6 @@
     transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   }
 
-  .rotation-arrow {
-    font-size: 48px;
-    line-height: 1;
-    text-align: center;
-    margin-top: 8px;
-    color: #ffd740;
-    transition: opacity 0.3s;
-    min-height: 56px;
-  }
-  .rotation-arrow .arrow-label {
-    font-size: 13px;
-    color: #aaa;
-    margin-top: 2px;
-  }
 
   /* Active face highlight in 3D */
   .face3d.face-active {
@@ -219,61 +205,6 @@
     text-shadow: 0 0 10px rgba(255, 215, 64, 0.6);
   }
 
-  /* Rotation indicator overlay */
-  .rotation-indicator {
-    text-align: center;
-    margin-top: 12px;
-    min-height: 80px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-  }
-  .rotation-indicator .arrow-text {
-    font-size: 15px;
-    font-weight: 700;
-    color: #ffd740;
-    margin-top: 6px;
-  }
-  /* Orbiting dot animation - unambiguous CW/CCW */
-  .orbit-ring {
-    width: 50px; height: 50px;
-    border: 3px solid rgba(255,215,64,0.25);
-    border-radius: 50%;
-    position: relative;
-    margin: 0 auto;
-  }
-  .orbit-dot {
-    position: absolute;
-    width: 10px; height: 10px;
-    background: #ffd740;
-    border-radius: 50%;
-    box-shadow: 0 0 8px rgba(255,215,64,0.7);
-    top: -5px; left: 50%; margin-left: -5px;
-  }
-  .orbit-cw .orbit-dot {
-    animation: orbit-cw 1.5s linear infinite;
-    transform-origin: 5px 30px;
-  }
-  .orbit-ccw .orbit-dot {
-    animation: orbit-ccw 1.5s linear infinite;
-    transform-origin: 5px 30px;
-  }
-  @keyframes orbit-cw {
-    from { transform: rotate(0deg); } to { transform: rotate(360deg); }
-  }
-  @keyframes orbit-ccw {
-    from { transform: rotate(0deg); } to { transform: rotate(-360deg); }
-  }
-  .orbit-180 .orbit-dot {
-    animation: orbit-180 1.2s ease-in-out infinite;
-    transform-origin: 5px 30px;
-  }
-  @keyframes orbit-180 {
-    0% { transform: rotate(0deg); }
-    50% { transform: rotate(180deg); }
-    100% { transform: rotate(360deg); }
-  }
   .cube3d .face3d {
     position: absolute;
     width: 220px;
@@ -388,7 +319,6 @@
         <div class="cube3d-container">
           <div class="cube3d" id="cube3d"></div>
         </div>
-        <div class="rotation-indicator" id="rotation-indicator"></div>
       </div>
       <!-- 2D Net on right -->
       <div style="flex-shrink:0;">
@@ -753,7 +683,6 @@ function updateAnimDisplay() {
 
   render2DNet(cube, queryFace, activeFace);
   render3DCube(cube, activeFace);
-  updateRotationIndicator(currentMove);
 }
 
 function render2DNet(cube, highlightFace, activeFace) {
@@ -832,55 +761,6 @@ function render3DCube(cube, activeFace) {
     container.appendChild(faceEl);
     container.appendChild(labelEl);
   }
-}
-
-// Rotation direction indicator with SVG arrow + orbiting dot
-function updateRotationIndicator(move) {
-  const el = document.getElementById('rotation-indicator');
-  if (!move) {
-    el.innerHTML = '';
-    return;
-  }
-  const face = move[0];
-  const isPrime = move.includes("'");
-  const isDouble = move.includes("2");
-
-  let orbitClass, dirText, svgArrow;
-
-  // SVG circular arrows - guaranteed correct rendering
-  const svgCW = `<svg viewBox="0 0 50 50" width="50" height="50">
-    <path d="M25 6 A19 19 0 1 1 6 25" stroke="#ffd740" stroke-width="3.5" fill="none" stroke-linecap="round"/>
-    <path d="M6 25 L6 16 L13 25 Z" fill="#ffd740"/>
-  </svg>`;
-  const svgCCW = `<svg viewBox="0 0 50 50" width="50" height="50">
-    <path d="M25 6 A19 19 0 1 0 44 25" stroke="#ffd740" stroke-width="3.5" fill="none" stroke-linecap="round"/>
-    <path d="M44 25 L44 16 L37 25 Z" fill="#ffd740"/>
-  </svg>`;
-  const svg180 = `<svg viewBox="0 0 50 50" width="50" height="50">
-    <path d="M25 6 A19 19 0 1 1 6 25" stroke="#ffd740" stroke-width="3.5" fill="none" stroke-linecap="round"/>
-    <path d="M6 25 L6 16 L13 25 Z" fill="#ffd740"/>
-    <path d="M25 6 A19 19 0 1 0 44 25" stroke="rgba(255,215,64,0.4)" stroke-width="2" fill="none" stroke-dasharray="4 3"/>
-  </svg>`;
-
-  if (isDouble) {
-    orbitClass = 'orbit-180';
-    dirText = `${FACE_FULL_ZH[face]} 旋转180°`;
-    svgArrow = svg180;
-  } else if (isPrime) {
-    orbitClass = 'orbit-ccw';
-    dirText = `${FACE_FULL_ZH[face]} 逆时针90°`;
-    svgArrow = svgCCW;
-  } else {
-    orbitClass = 'orbit-cw';
-    dirText = `${FACE_FULL_ZH[face]} 顺时针90°`;
-    svgArrow = svgCW;
-  }
-
-  el.innerHTML = `<div style="display:flex;align-items:center;gap:12px;">
-    ${svgArrow}
-    <div class="orbit-ring ${orbitClass}"><div class="orbit-dot"></div></div>
-  </div>
-  <div class="arrow-text">${dirText}</div>`;
 }
 
 function animNext() {
